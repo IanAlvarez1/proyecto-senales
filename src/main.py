@@ -15,7 +15,7 @@ from operacionConvolucion import *
 from operacionAmplificacionAtenuacion import *
 from operacionInterpolacionDiezmacion import *
 from operacionDesplazamiento import *
-from operacionFFT import *
+from operacionFFT import obtener_FFT, graficarFFT, graficarFFT2
 
 ventana = Tk()
 
@@ -34,6 +34,10 @@ udsDesplazamiento = IntVar()
 hL = StringVar()
 hO = StringVar()
 hR = StringVar()
+
+xentrytext = StringVar()
+hentrytext = StringVar()
+gentrytext = StringVar()
 
 # Variables para las periocidades
 
@@ -202,7 +206,7 @@ def introducirValores():
            bd=8, background="#ffb3cc", height=1, command=fft,
            font=("Arial", 16)).place(x=xPosicion, y=espacio*7+yPosicion)
 
-    Button(ventana, text="Pruebas", command=tests).place(x=xPosicion+15, y=espacio*8+yPosicion)
+    # Button(ventana, text="Pruebas", command=tests).place(x=xPosicion+15, y=espacio*8+yPosicion)
 
     #Checkboxes
     Checkbutton(ventana, text="Periodica", variable=xesperiodica).place(x=615, y=25)
@@ -283,7 +287,7 @@ def introducirValoresAudio():
            bd=8, background="#ffb3cc", height=1, command=fft_audio,
            font=("Arial", 16)).place(x=xPosicion, y=espacio*7+yPosicion)
 
-    Button(ventana, text="Pruebas", command=tests).place(x=xPosicion+15, y=espacio*8+yPosicion)
+    # Button(ventana, text="Pruebas", command=tests).place(x=xPosicion+15, y=espacio*8+yPosicion)
 
     ventana.mainloop()
 
@@ -327,14 +331,17 @@ def configurarPantalla(operacion, resx, resh, resg):
     Label(ventana, text=operacion,
           font=("Arial", 45)).place(x=270, y=50)
 
-    Label(ventana, text=resx,
+    Entry(ventana, textvariable=xentrytext, width=33,
           font=("Arial", 25)).place(x=50, y=150)
+    xentrytext.set(resx)
 
-    Label(ventana, text=resh,
+    Entry(ventana, textvariable=hentrytext, width=33,
           font=("Arial", 25)).place(x=50, y=220)
+    hentrytext.set(resh)
 
-    Label(ventana, text=resg,
+    Entry(ventana, textvariable=gentrytext, width=33,
           font=("Arial", 25)).place(x=50, y=290)
+    gentrytext.set(resg)
 
 """
 Para las operaciones que solo tienen una secuencia de entrada
@@ -365,7 +372,7 @@ def configurarPantallaDeUnSoloValor(operacion, xn, gn):
 
     #Se imprimen los arreglos emparejados
     #y el resultado
-    resx = "x(n){"
+    resx = "x(n)={"
     for e in xn:
         if e != "":
             resx = resx + str(e) + ","
@@ -373,7 +380,7 @@ def configurarPantallaDeUnSoloValor(operacion, xn, gn):
             resx = resx + str(e)
     resx = resx + "}"
 
-    resg = "g(n){"
+    resg = "g(n)={"
     for e in gn:
         if e != "":
             resg = resg+str(e)+","
@@ -387,11 +394,13 @@ def configurarPantallaDeUnSoloValor(operacion, xn, gn):
     Label(ventana, text=operacion,
           font=("Arial", 45)).place(x=240, y=50)
 
-    Label(ventana, text=resx,
+    Entry(ventana, textvariable=xentrytext, width=30,
           font=("Arial", 25)).place(x=50, y=150)
+    xentrytext.set(resx)
 
-    Label(ventana, text=resg,
+    Entry(ventana, textvariable=gentrytext, width=30,
           font=("Arial", 25)).place(x=50, y=290)
+    gentrytext.set(resg)
 
 
 def obtenerSecuencia(variable, senal):
@@ -520,6 +529,7 @@ def reflejarEnXyY():
     senal = concatenarSecuenciaX()
     xn = senal[0]
 
+    senal = SenalDiscreta(xn.obtener_datos(), xn.obtener_indice_inicio(), xn.es_periodica())
 
     # Se realiza la operación
     gnY = obtener_reflejoY(xn)
@@ -532,10 +542,14 @@ def reflejarEnXyY():
 
     gnX = SenalDiscreta(datosAux, xn.obtener_indice_inicio(), xn.es_periodica())
 
+    originalData =  senal.obtener_datos()[:]
+    for i in range(len(originalData)):
+        originalData[i]*=-1
+    senal.asignar_datos(originalData)
 
     operacion = "Reflejar" # ------------------------LINEA A CAMBIAR
-    # Se configura la GUI
-    configurarPantalla(operacion, obtenerSecuencia("x", xn), obtenerSecuencia("x", gnX), obtenerSecuencia("x", gnY))
+    # Se configura la GU
+    configurarPantalla(operacion, obtenerSecuencia("f", senal), obtenerSecuencia("x", gnX), obtenerSecuencia("y", gnY))
     # Grafica
     graficarReflejo(puntosEjeH, gnX.obtener_datos(), gnY.obtener_datos(), operacion)
 
@@ -557,7 +571,7 @@ def diezmar():
     configurarPantallaDeUnSoloValor(operacion, xn.obtener_datos(), gn.obtener_datos())
     # Grafica
     gn.empatar(xn)
-    graficarSolo2(range(gn.obtener_longitud()), xn.obtener_datos(), gn.obtener_datos(), operacion)
+    graficarSolo2(range(gn.obtener_indice_inicio(), gn.obtener_longitud()+gn.obtener_indice_inicio()), xn.obtener_datos(), gn.obtener_datos(), operacion)
     ventana.mainloop()
 
 def interpolar():
@@ -576,7 +590,7 @@ def interpolar():
     configurarPantallaDeUnSoloValor(operacion, xn.obtener_datos(), gn.obtener_datos())
     # Grafica
     gn.empatar(xn)
-    graficarSolo2(range(gn.obtener_longitud()), xn.obtener_datos(), gn.obtener_datos(), operacion)
+    graficarSolo2(range(gn.obtener_indice_inicio(), gn.obtener_longitud()+gn.obtener_indice_inicio()), xn.obtener_datos(), gn.obtener_datos(), operacion)
     ventana.mainloop()
     
 def diezmarAudio():
@@ -662,7 +676,7 @@ def fft_audio():
     plt.subplot(121)
     plt.plot(T1N)
     plt.show()
-    # ventana.mainloop()
+    ventana.mainloop()
 
 # TODO: Validar valores de las entradas
 def emparejarValores():
@@ -822,7 +836,7 @@ def desplazar():
 
     gn = obtener_Desplazamiento(xn, udsDesplazamiento.get())
 
-    emparejarPuntosEjeHConInicio(gn)
+    # emparejarPuntosEjeHConInicio(gn)
     # xncopia.empatar(gn)
 
     # Se realiza la operación
